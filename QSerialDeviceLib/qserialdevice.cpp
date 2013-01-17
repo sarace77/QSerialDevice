@@ -1,3 +1,4 @@
+#include "hled.h"
 #include "qserialdevice.h"
 #include "qserialsettingswidget.h"
 
@@ -12,17 +13,23 @@
 
 QSerialDevice::QSerialDevice(QObject *parent) : QObject(parent) {
     _closeButton = new QPushButton("Close");
+    _led = new HLed();
     _mainToolBar = new QToolBar();
     _openButton = new QPushButton("Open");
     _serialSettingsWidget = new QSerialSettingsWidget();
 
+    _mainToolBar->addWidget(((QSerialSettingsWidget*)_serialSettingsWidget)->getPortWidget());
     _mainToolBar->addWidget(_openButton);
     _mainToolBar->addWidget(_closeButton);
+    _mainToolBar->addSeparator();
+    _mainToolBar->addWidget(_led);
 
     _isPortConfigured = false;
 
-    _openButton->setEnabled(true);
     _closeButton->setEnabled(false);
+    ((HLed *)_led)->setColor(QColor(Qt::gray));
+    ((HLed *)_led)->turnOff();
+    _openButton->setEnabled(true);
 
     connect(&_serialPort, SIGNAL(readyRead()), this, SLOT(onDataAvailable()));
     connect(_openButton, SIGNAL(clicked()), this, SLOT(open()));
@@ -46,8 +53,10 @@ void QSerialDevice::close() {
         qWarning() << _MODULE_NAME << "close() - " <<_serialPort.portName() << " is not opened";
     }
     _closeButton->setEnabled(false);
+    ((HLed *)_led)->turnOff();
     _openButton->setEnabled(true);
     _serialSettingsWidget->setEnabled(true);
+    ((QSerialSettingsWidget*)_serialSettingsWidget)->getPortWidget()->setEnabled(true);
     emit portClosed();
 }
 
@@ -68,9 +77,9 @@ void QSerialDevice::onDataAvailable() {
     QTime readWaitTimer;
     readWaitTimer.start();
     while(readWaitTimer.elapsed() < _READ_TIMEOUT);
-
     qDebug() << _MODULE_NAME << "onDataAvailable() - " <<_serialPort.bytesAvailable() << " Bytes on " << _serialPort.portName();
     QByteArray data = _serialPort.readAll();
+    ((HLed *) _led)->blink(data.size());
     qDebug() << _MODULE_NAME << "onDataAvailable() - Data:" << data;
     while (_inBuffer.count() >= _MAX_BUFF_SIZE)
         _inBuffer.dequeue();
@@ -102,14 +111,18 @@ bool QSerialDevice::open(QIODevice::OpenMode mode) {
     }
 
     if(_serialPort.open(mode)) {
+        ((HLed *)_led)->setColor(QColor(Qt::green));
         qDebug() << _MODULE_NAME << "open() - " << _serialPort.portName() << " succesfully opened!";
         emit portOpened();
         _closeButton->setEnabled(true);
+        ((HLed *)_led)->turnOn();
         _openButton->setEnabled(false);
         _serialSettingsWidget->setDisabled(true);
+        ((QSerialSettingsWidget*)_serialSettingsWidget)->getPortWidget()->setEnabled(false);
     } else {
         qWarning() << _MODULE_NAME << "open() - Error opening " << _serialPort.portName();
         qWarning() << _MODULE_NAME << "open() - Error: " << _serialPort.errorString();
+        ((HLed *)_led)->setColor(QColor(Qt::red));
         return false;
     }
     return true;
@@ -214,10 +227,12 @@ qint64 QSerialDevice::write(QByteArray data) {
     qint64 res = -1;
     if (_serialPort.isOpen()) {
         res = _serialPort.write(data);
-        emit
+        ((HLed *) _led)->blink(res);
+        ((HLed *) _led)->turnOn();
         if (res < data.size()) {
             qWarning() << _MODULE_NAME << "write() - Write Error";
             qWarning() << _MODULE_NAME << "write() - " << _serialPort.portName() << " returns" << _serialPort.errorString();
+            ((HLed *)_led)->setColor(QColor(Qt::red));
         }
         if (res > 0)
             emit dataWritten(res);

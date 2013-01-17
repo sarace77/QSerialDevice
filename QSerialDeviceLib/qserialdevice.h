@@ -12,7 +12,7 @@ class QSerialDevice : public QObject
     Q_OBJECT
 
 private:
-    QWidget *_serialSettingsWidget;
+    QWidget *_led, *_serialSettingsWidget;
     QextSerialPort _serialPort;
 
     QPushButton *_closeButton, *_openButton;

@@ -27,6 +27,8 @@ public:
     PortSettings getPortSettings();
     QString getPortName();
 
+    QWidget *getPortWidget();
+
 private:
     Ui::QSerialSettingsWidget *ui;
 };

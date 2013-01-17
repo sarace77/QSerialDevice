@@ -123,15 +123,9 @@ QSerialSettingsWidget::~QSerialSettingsWidget()
     delete _serialEnumerator;
 }
 
-void QSerialSettingsWidget::updateDevicesList() {
-    qDebug() << _MODULE_NAME << "updateDevicesList() - Port Connection/Disconnection Event";
-    ui->serialPortCombo->clear();
-    QStringList sPorts;
+QString QSerialSettingsWidget::getPortName() {
     QList<QextPortInfo> ports = QextSerialEnumerator::getPorts();
-    foreach (QextPortInfo port, ports) {
-        sPorts << port.portName + "(" + port.friendName + "," + port.physName + ")";
-    }
-    ui->serialPortCombo->addItems(sPorts);
+    return ports.at(ui->serialPortCombo->currentIndex()).portName;
 }
 
 PortSettings QSerialSettingsWidget::getPortSettings() {
@@ -145,7 +139,17 @@ PortSettings QSerialSettingsWidget::getPortSettings() {
     return settings;
 }
 
-QString QSerialSettingsWidget::getPortName() {
+QWidget* QSerialSettingsWidget::getPortWidget() {
+    return ui->serialPortCombo;
+}
+
+void QSerialSettingsWidget::updateDevicesList() {
+    qDebug() << _MODULE_NAME << "updateDevicesList() - Port Connection/Disconnection Event";
+    ui->serialPortCombo->clear();
+    QStringList sPorts;
     QList<QextPortInfo> ports = QextSerialEnumerator::getPorts();
-    return ports.at(ui->serialPortCombo->currentIndex()).portName;
+    foreach (QextPortInfo port, ports) {
+        sPorts << port.portName + "(" + port.friendName + "," + port.physName + ")";
+    }
+    ui->serialPortCombo->addItems(sPorts);
 }
