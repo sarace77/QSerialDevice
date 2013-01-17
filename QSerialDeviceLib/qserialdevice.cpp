@@ -53,6 +53,7 @@ void QSerialDevice::close() {
         qWarning() << _MODULE_NAME << "close() - " <<_serialPort.portName() << " is not opened";
     }
     _closeButton->setEnabled(false);
+    ((HLed *)_led)->setColor(QColor(Qt::gray));
     ((HLed *)_led)->turnOff();
     _openButton->setEnabled(true);
     _serialSettingsWidget->setEnabled(true);
@@ -84,8 +85,6 @@ void QSerialDevice::onDataAvailable() {
     while (_inBuffer.count() >= _MAX_BUFF_SIZE)
         _inBuffer.dequeue();
     _inBuffer.enqueue(data);
-    _closeButton->setDisabled(true);
-    _openButton->setEnabled(true);
     emit dataAvailable();
     emit msgAvailable(data);
 }
