@@ -36,7 +36,6 @@ public:
     bool isOpen();
 
     QByteArray read();
-    qint64 write(QByteArray data);
 
 signals:
     void dataAvailable();
@@ -49,6 +48,7 @@ public slots:
     void close();
     bool open(QIODevice::OpenMode mode = QIODevice::ReadWrite);
     bool setSerialParams(QString pName, QString bRate = "57600", QString dBits = "8", QString par = "NONE", QString sBits = "1", QString fControl = "OFF");
+    qint64 write(QByteArray data);
 };
 
 #endif // QSERIALDEVICE_H

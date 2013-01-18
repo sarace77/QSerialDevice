@@ -1,4 +1,5 @@
 TEMPLATE = subdirs
 
 SUBDIRS += QSerialDeviceLib \
-    QSerialDeviceDemo
+    QSerialDeviceDemo \
+    QSerialConsole
