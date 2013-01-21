@@ -1,6 +1,7 @@
 #ifndef QSERIALDEVICE_H
 #define QSERIALDEVICE_H
 
+
 #include <QQueue>
 #include <QPushButton>
 #include <QToolBar>
@@ -25,7 +26,9 @@ private:
 private slots:
     void onDataAvailable();
 
+#ifdef _DEBUG_QSERIALDEVICE_LIB
     void _DEBUG_printMsg(QByteArray data);
+#endif //__DEBUG_QSERIALDEVICE_LIB
 
 public:
     QSerialDevice(QObject *parent = 0);

@@ -16,6 +16,9 @@ class QSerialSettingsWidget : public QWidget
 
 private:
     QextSerialEnumerator *_serialEnumerator;
+#ifdef _DEBUG_QSERIALDEVICE_WIDGET
+    bool _isFirstTime;
+#endif //_DEBUG_QSERIALDEVICE_WIDGET
 
 private slots:
     void updateDevicesList();

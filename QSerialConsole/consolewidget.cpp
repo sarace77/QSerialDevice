@@ -41,6 +41,6 @@ void ConsoleWidget::printBanner(QString banner) {
 void ConsoleWidget::printIncomingMessage(QByteArray msg) {
     setTextCursor(_lastLine);
     setTextColor(QColor(Qt::yellow));
-    append(QString(msg)+QString("\n"));
+    insertPlainText(QString(msg)+QString("\n"));
     _lastLine = textCursor();
 }

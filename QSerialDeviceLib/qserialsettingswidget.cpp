@@ -1,7 +1,9 @@
 #include "qserialsettingswidget.h"
 #include "ui_qserialsettingswidget.h"
 
+#ifdef _DEBUG_QSERIALDEVICE_WIDGET
 #include <QDebug>
+#endif //_DEBUG_QSERIALDEVICE_WIDGET
 
 #define _MODULE_NAME "[QSERIALSETTINGSWIDGET] - "
 
@@ -9,10 +11,16 @@ QSerialSettingsWidget::QSerialSettingsWidget(QWidget *parent) : QWidget(parent),
     ui->setupUi(this);
     _serialEnumerator = new QextSerialEnumerator(this);
 
+#ifdef _DEBUG_QSERIALDEVICE_WIDGET
+    _isFirstTime = true;
+#endif //_DEBUG_QSERIALDEVICE_WIDGET
     updateDevicesList();
 
     quint8 index = 0;
 #if (defined(B230400) && defined(B4000000))
+#ifdef _DEBUG_QSERIALDEVICE_WIDGET
+    qDebug() << _MODULE_NAME << "QSerialSettingsWidget() - Adding B230400 & B4000000 Baud Rates";
+#endif //_DEBUG_QSERIALDEVICE_WIDGET
     ui->baudrateCombo->addItem("4000000");
     ++index;
     ui->baudrateCombo->addItem("3500000");
@@ -39,6 +47,9 @@ QSerialSettingsWidget::QSerialSettingsWidget(QWidget *parent) : QWidget(parent),
     ++index;
 #endif // B230400 && B4000000
 #ifdef Q_OS_WIN
+#ifdef _DEBUG_QSERIALDEVICE_WIDGET
+    qDebug() << _MODULE_NAME << "QSerialSettingsWidget() - Windows Baud Rates";
+#endif //_DEBUG_QSERIALDEVICE_WIDGET
     ui->baudrateCombo->addItem("256000");
     ++index;
 #endif // Q_OS_WIN
@@ -69,6 +80,10 @@ QSerialSettingsWidget::QSerialSettingsWidget(QWidget *parent) : QWidget(parent),
     ui->baudrateCombo->addItem("4800");
     ui->baudrateCombo->addItem("2400");
 #ifdef Q_OS_UNIX
+#ifdef _DEBUG_QSERIALDEVICE_WIDGET
+    qDebug() << _MODULE_NAME << "QSerialSettingsWidget() - Adding *Nix Baud Rates";
+#endif //_DEBUG_QSERIALDEVICE_WIDGET
+
     ui->baudrateCombo->addItem("1800");
 #endif //Q_OS_UNIX
     ui->baudrateCombo->addItem("1200");
@@ -96,6 +111,10 @@ QSerialSettingsWidget::QSerialSettingsWidget(QWidget *parent) : QWidget(parent),
     ui->parityCombo->addItem("ODD");
     ui->parityCombo->addItem("EVEN");
 #ifdef Q_OS_WIN
+#ifdef _DEBUG_QSERIALDEVICE_WIDGET
+    qDebug() << _MODULE_NAME << "QSerialSettingsWidget() - Adding Windows Parity specs";
+#endif //_DEBUG_QSERIALDEVICE_WIDGET
+
     ui->parityCombo->addItem("MARK");
 #endif //Q_OS_WIN
     ui->parityCombo->addItem("SPACE");
@@ -103,6 +122,9 @@ QSerialSettingsWidget::QSerialSettingsWidget(QWidget *parent) : QWidget(parent),
 
     ui->stopbitsCombo->addItem("1");
 #ifdef Q_OS_WIN
+#ifdef Q_OS_WIN#ifdef _DEBUG_QSERIALDEVICE_WIDGET
+    qDebug() << _MODULE_NAME << "QSerialSettingsWidget() - Adding Windows Stop-bits specs";
+#endif //_DEBUG_QSERIALDEVICE_WIDGET
     ui->stopbitsCombo->addItem("1.5");
 #endif //Q_OS_WIN
     ui->stopbitsCombo->addItem("2");
@@ -144,12 +166,21 @@ QWidget* QSerialSettingsWidget::getPortWidget() {
 }
 
 void QSerialSettingsWidget::updateDevicesList() {
-    qDebug() << _MODULE_NAME << "updateDevicesList() - Port Connection/Disconnection Event";
+#ifdef _DEBUG_QSERIALDEVICE_WIDGET
+    if (!_isFirstTime)
+        qDebug() << _MODULE_NAME << "updateDevicesList() - Port Connection/Disconnection Event";
+    else
+        _isFirstTime = false;
+#endif //_DEBUG_QSERIALDEVICE_WIDGET
     ui->serialPortCombo->clear();
     QStringList sPorts;
     QList<QextPortInfo> ports = QextSerialEnumerator::getPorts();
     foreach (QextPortInfo port, ports) {
-        sPorts << port.portName + "(" + port.friendName + "," + port.physName + ")";
+        //sPorts << port.portName + "(" + port.friendName + " - " + port.physName + ")";
+        sPorts << port.friendName + " (" + port.physName + ")";
     }
+#ifdef _DEBUG_QSERIALDEVICE_WIDGET
+    qDebug() << _MODULE_NAME << "updateDevicesList() - " << sPorts.count() << " ports found:" << sPorts;
+#endif //_DEBUG_QSERIALDEVICE_WIDGET
     ui->serialPortCombo->addItems(sPorts);
 }

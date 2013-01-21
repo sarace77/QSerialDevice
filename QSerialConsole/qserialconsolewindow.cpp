@@ -21,6 +21,7 @@ QSerialConsoleWindow::QSerialConsoleWindow(QWidget *parent) :
 
 QSerialConsoleWindow::~QSerialConsoleWindow()
 {
+    delete _consoleWidget;
     delete ui;
 }
 
