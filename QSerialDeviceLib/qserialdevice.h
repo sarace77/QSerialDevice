@@ -8,6 +8,8 @@
 
 #include <QtExtSerialPort/qextserialport.h>
 
+#include "protocol.h"
+
 class QSerialDevice : public QObject
 {
     Q_OBJECT
@@ -22,6 +24,8 @@ private:
     bool _isPortConfigured;
 
     QQueue<QByteArray > _inBuffer;
+
+    Protocol *_prt;
 
 private slots:
     void onDataAvailable();
@@ -40,18 +44,22 @@ public:
 
     QByteArray read();
 
-signals:
-    void dataAvailable();
-    void dataWritten(qint64 bytes);
-    void msgAvailable(QByteArray msg);
-    void portOpened();
-    void portClosed();
+    void setProtocol(Protocol *proto);
+
+    static QByteArray decodeData(Protocol *proto, QByteArray data);
 
 public slots:
     void close();
     bool open(QIODevice::OpenMode mode = QIODevice::ReadWrite);
     bool setSerialParams(QString pName, QString bRate = "57600", QString dBits = "8", QString par = "NONE", QString sBits = "1", QString fControl = "OFF");
     qint64 write(QByteArray data);
+
+signals:
+    void dataAvailable();
+    void dataWritten(qint64 bytes);
+    void msgAvailable(QByteArray msg);
+    void portOpened();
+    void portClosed();
 };
 
 #endif // QSERIALDEVICE_H

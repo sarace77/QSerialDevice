@@ -37,9 +37,25 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menu_Settings">
+    <property name="title">
+     <string>S&amp;ettings</string>
+    </property>
+    <widget class="QMenu" name="menuProtocol">
+     <property name="title">
+      <string>Pro&amp;tocols</string>
+     </property>
+     <addaction name="actionNone"/>
+     <addaction name="actionASCII"/>
+    </widget>
+    <addaction name="actionPortSettings"/>
+    <addaction name="separator"/>
+    <addaction name="menuProtocol"/>
+   </widget>
+   <addaction name="menu_Settings"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">
@@ -50,6 +66,30 @@
    </attribute>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
+  <action name="actionPortSettings">
+   <property name="text">
+    <string>&amp;Port Settings</string>
+   </property>
+  </action>
+  <action name="actionNone">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;None</string>
+   </property>
+  </action>
+  <action name="actionASCII">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;ASCII</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources/>

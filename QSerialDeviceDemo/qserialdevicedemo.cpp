@@ -61,6 +61,7 @@ void QSerialDeviceDemo::on_sendButton_clicked() {
         if (data.isEmpty()) {
             _errorDialog->showMessage("No Data to send");
         } else {
+            data.append((0x0a));
             if (_serialDevice->write(data) != data.size()) {
                 _errorDialog->showMessage("Error writing data on serial port!");
             } else {
