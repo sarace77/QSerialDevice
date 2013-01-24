@@ -4,7 +4,7 @@
 #include <QDialog>
 #include <QMainWindow>
 
-#include "consolewidget.h"
+#include "qconsolewidget.h"
 #include "protocol.h"
 #include "qserialdevice.h"
 
@@ -19,12 +19,13 @@ class QSerialConsoleWindow : public QMainWindow
 private:
     Ui::QSerialConsoleWindow *ui;
     QSerialDevice *_serialPort;
-    ConsoleWidget *_consoleWidget;
+    QConsoleWidget *_consoleWidget;
     QDialog *_portSettingsDialog;
 
     Protocol *_protocol;
 
 private slots:
+    void incomingMessage(QByteArray msg);
     void on_actionASCII_triggered();
     void on_actionNone_triggered();
     void on_actionPortSettings_triggered();
@@ -34,9 +35,6 @@ private slots:
 public:
     explicit QSerialConsoleWindow(QWidget *parent = 0);
     ~QSerialConsoleWindow();
-
-signals:
-    void protocolChanged(Protocol *proto);
 };
 
 #endif // QSERIALCONSOLEWINDOW_H

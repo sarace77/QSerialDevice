@@ -281,6 +281,9 @@ void QSerialDevice::setProtocol(Protocol *proto) {
 }
 
 qint64 QSerialDevice::write(QByteArray data) {
+#ifdef _DEBUG_QSERIALDEVICE_LIB
+            qDebug() << _MODULE_NAME << "write() - Sending:" << data << "(" << data.size() << " Bytes)";
+#endif //_DEBUG_QSERIALDEVICE_LIB
     qint64 res = -1;
     if (_serialPort.isOpen()) {
         if (_prt) {

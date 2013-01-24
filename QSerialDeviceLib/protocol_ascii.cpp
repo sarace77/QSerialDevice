@@ -171,7 +171,9 @@ QByteArray Protocol_ASCII::encode(QByteArray data) {
             sTag += QString(data.at(i));
             if (_tagList.contains(sTag)) {
                 char eChar = (char) _tagList.indexOf(sTag) != 33 ? _tagList.indexOf(sTag) : 0x7f;
+#ifdef _DEBUG_PROTOCOL
                 qDebug() << _MODULE_NAME << "encode() - Encoded" << sTag << " in" << (int) eChar;
+#endif //_DEBUG_PROTOCOL
                 dataEncoded.append(eChar);
 
             }
