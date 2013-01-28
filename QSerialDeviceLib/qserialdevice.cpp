@@ -1,9 +1,16 @@
+#include <QDir>
+#include <QFile>
+#include <QTime>
+
 #include "hled.h"
-
 #include "protocol_ascii.h"
-
 #include "qserialdevice.h"
 #include "qserialsettingswidget.h"
+
+#include <QtExtSerialPort/qextserialport.h>
+
+#define _MAX_BUFF_SIZE 255
+#define _READ_TIMEOUT 500
 
 #ifdef _DEBUG_QSERIALDEVICE_LIB
 #include <QDebug>
@@ -13,20 +20,11 @@
 #ifdef Q_OS_WIN
 #define _QSERIALDEVICE_CONFIG_DIR "Settings"
 #define _QSERIALDEVICE_CONFIG_FILE "settings.ini"
-#else
+#else //Q_OS_UNIX/LINUX
 #define _QSERIALDEVICE_CONFIG_DIR ".qserialdevice"
 #define _QSERIALDEVICE_CONFIG_FILE "config.xml"
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
-#endif //Q_OS_WIN
-
-#include <QDir>
-#include <QFile>
-#include <QTime>
-
-#define _MAX_BUFF_SIZE 255
-#define _READ_TIMEOUT 500
-
 QStringList xmlLoad(QFile *iFile) {
     QStringList res;
     QXmlStreamReader xmlReader(iFile);
@@ -54,7 +52,6 @@ QStringList xmlLoad(QFile *iFile) {
     return res;
 }
 
-
 void xmlSave(QFile *oFile, QString sPortName, QStringList sSettings) {
     QXmlStreamWriter xmlWriter(oFile);
     xmlWriter.setAutoFormatting(true);
@@ -71,12 +68,16 @@ void xmlSave(QFile *oFile, QString sPortName, QStringList sSettings) {
     xmlWriter.writeEndElement();
     xmlWriter.writeEndDocument();
 }
+#endif //Q_OS_WIN
+
+
 
 QSerialDevice::QSerialDevice(QString sFileSettingsName, QObject *parent) : QObject(parent) {
     _closeButton = new QPushButton("Close");
     _led = new HLed();
     _mainToolBar = new QToolBar();
     _openButton = new QPushButton("Open");
+    _serialPort = new QextSerialPort();
     _serialSettingsWidget = new QSerialSettingsWidget();
 
     if (sFileSettingsName.isEmpty())
@@ -96,9 +97,13 @@ QSerialDevice::QSerialDevice(QString sFileSettingsName, QObject *parent) : QObje
         qDebug() << _MODULE_NAME << "QSerialDevice() - Loading Settings from: " << sFileSettingsName;
 #endif //_DEBUG_QSERIALDEVICE_LIB
             if(_configFile.open(QIODevice::ReadOnly)) {
+#ifdef Q_OS_WIN
+                /// \todo
+#else //Q_OS_UNIX | Q_OS_LINUX
                 QStringList sP = xmlLoad(&_configFile);
-                _configFile.close();
                 setSerialParams(sP.at(0), sP.at(1), sP.at(2), sP.at(3), sP.at(4), sP.at(5));
+#endif //Q_OS_WIN
+                _configFile.close();
 #ifdef _DEBUG_QSERIALDEVICE_LIB
             } else {
                 qWarning() << _MODULE_NAME << "QSerialDevice() - Unable to open " << _QSERIALDEVICE_CONFIG_FILE;
@@ -121,13 +126,9 @@ QSerialDevice::QSerialDevice(QString sFileSettingsName, QObject *parent) : QObje
     _openButton->setEnabled(true);
 
 
-    connect(&_serialPort, SIGNAL(readyRead()), this, SLOT(onDataAvailable()));
+    connect(_serialPort, SIGNAL(readyRead()), this, SLOT(onDataAvailable()));
     connect(_openButton, SIGNAL(clicked()), this, SLOT(open()));
     connect(_closeButton, SIGNAL(clicked()), this, SLOT(close()));
-
-#ifdef _DEBUG_QSERIALDEVICE_LIB
-    connect(this, SIGNAL(msgAvailable(QByteArray)), this, SLOT(_DEBUG_printMsg(QByteArray)));
-#endif //_DEBUG_QSERIALDEVICE_LIB
 }
 
 QSerialDevice::~QSerialDevice() {
@@ -138,7 +139,11 @@ QSerialDevice::~QSerialDevice() {
     _configDir.cd(_QSERIALDEVICE_CONFIG_DIR);
     QFile _configFile(_configDir.absolutePath()+QString("/") + QString(+_QSERIALDEVICE_CONFIG_FILE));
     if(_configFile.open(QIODevice::WriteOnly)) {
+#ifdef Q_OS_WIN
+        /// \todo
+#else // Q_OS_UNIX | Q_OS_LINUX
         xmlSave(&_configFile, sPortName, sSettings);
+#endif // Q_OS_WIN
 #ifdef _DEBUG_QSERIALDEVICE_LIB
     } else {
         qWarning() << _MODULE_NAME << "~QSerialDevice() - Unable to open " << _QSERIALDEVICE_CONFIG_FILE;
@@ -152,12 +157,12 @@ QSerialDevice::~QSerialDevice() {
 }
 
 void QSerialDevice::close() {
-    if (_serialPort.isOpen()) {
-        _serialPort.close();
+    if (_serialPort->isOpen()) {
+        _serialPort->close();
 #ifdef _DEBUG_QSERIALDEVICE_LIB
-        qDebug() << _MODULE_NAME << "close() - Closing Serial port" << _serialPort.portName();
+        qDebug() << _MODULE_NAME << "close() - Closing Serial port" << ((QextSerialPort *)_serialPort)->portName();
     } else {
-        qWarning() << _MODULE_NAME << "close() - " <<_serialPort.portName() << " is not opened";
+        qWarning() << _MODULE_NAME << "close() - " <<((QextSerialPort *)_serialPort)->portName() << " is not opened";
 #endif //_DEBUG_QSERIALDEVICE_LIB
     }
     _closeButton->setEnabled(false);
@@ -179,7 +184,7 @@ QWidget* QSerialDevice::getWidget(QWidget *parent) {
 }
 
 bool QSerialDevice::isOpen() {
-    return _serialPort.isOpen();
+    return _serialPort->isOpen();
 }
 
 void QSerialDevice::onDataAvailable() {
@@ -187,9 +192,9 @@ void QSerialDevice::onDataAvailable() {
     readWaitTimer.start();
     while(readWaitTimer.elapsed() < _READ_TIMEOUT);
 #ifdef _DEBUG_QSERIALDEVICE_LIB
-    qDebug() << _MODULE_NAME << "onDataAvailable() - " <<_serialPort.bytesAvailable() << " Bytes on " << _serialPort.portName();
+    qDebug() << _MODULE_NAME << "onDataAvailable() - " <<((QextSerialPort *)_serialPort)->bytesAvailable() << " Bytes on " << ((QextSerialPort *)_serialPort)->portName();
 #endif //_DEBUG_QSERIALDEVICE_LIB
-    QByteArray data = _serialPort.readAll();
+    QByteArray data = _serialPort->readAll();
 #ifdef _DEBUG_QSERIALDEVICE_LIB
     qDebug() << _MODULE_NAME << "onDataAvailable() - Data:" << data;
 #endif //_DEBUG_QSERIALDEVICE_LIB
@@ -204,33 +209,33 @@ void QSerialDevice::onDataAvailable() {
 }
 
 bool QSerialDevice::open(QIODevice::OpenMode mode) {
-    if (_serialPort.isOpen()) {
-        if(_serialPort.portName() == ((QSerialSettingsWidget*)_serialSettingsWidget)->getPortName()) {
+    if (((QextSerialPort *)_serialPort)->isOpen()) {
+        if(((QextSerialPort *)_serialPort)->portName() == ((QSerialSettingsWidget*)_serialSettingsWidget)->getPortName()) {
 #ifdef _DEBUG_QSERIALDEVICE_LIB
-            qWarning() << _MODULE_NAME << "open() - " << _serialPort.portName() << " already opened!";
+            qWarning() << _MODULE_NAME << "open() - " << ((QextSerialPort *)_serialPort)->portName() << " already opened!";
 #endif //_DEBUG_QSERIALDEVICE_LIB
             return false;
         } else {
 #ifdef _DEBUG_QSERIALDEVICE_LIB
-            qWarning() << _MODULE_NAME << "closing() - " << _serialPort.portName();
+            qWarning() << _MODULE_NAME << "closing() - " << ((QextSerialPort *)_serialPort)->portName();
 #endif //_DEBUG_QSERIALDEVICE_LIB
             close();
         }
     }
     if (!_isPortConfigured) {
-        _serialPort.setPortName(((QSerialSettingsWidget*)_serialSettingsWidget)->getPortName());
-        _serialPort.setBaudRate(((QSerialSettingsWidget*)_serialSettingsWidget)->getPortSettings().BaudRate);
-        _serialPort.setDataBits(((QSerialSettingsWidget*)_serialSettingsWidget)->getPortSettings().DataBits);
-        _serialPort.setFlowControl(((QSerialSettingsWidget*)_serialSettingsWidget)->getPortSettings().FlowControl);
-        _serialPort.setParity(((QSerialSettingsWidget*)_serialSettingsWidget)->getPortSettings().Parity);
-        _serialPort.setStopBits(((QSerialSettingsWidget*)_serialSettingsWidget)->getPortSettings().StopBits);
-        _serialPort.setTimeout(((QSerialSettingsWidget*)_serialSettingsWidget)->getPortSettings().Timeout_Millisec);
+        ((QextSerialPort *)_serialPort)->setPortName(((QSerialSettingsWidget*)_serialSettingsWidget)->getPortName());
+        ((QextSerialPort *)_serialPort)->setBaudRate(((QSerialSettingsWidget*)_serialSettingsWidget)->getPortSettings().BaudRate);
+        ((QextSerialPort *)_serialPort)->setDataBits(((QSerialSettingsWidget*)_serialSettingsWidget)->getPortSettings().DataBits);
+        ((QextSerialPort *)_serialPort)->setFlowControl(((QSerialSettingsWidget*)_serialSettingsWidget)->getPortSettings().FlowControl);
+        ((QextSerialPort *)_serialPort)->setParity(((QSerialSettingsWidget*)_serialSettingsWidget)->getPortSettings().Parity);
+        ((QextSerialPort *)_serialPort)->setStopBits(((QSerialSettingsWidget*)_serialSettingsWidget)->getPortSettings().StopBits);
+        ((QextSerialPort *)_serialPort)->setTimeout(((QSerialSettingsWidget*)_serialSettingsWidget)->getPortSettings().Timeout_Millisec);
     }
 
-    if(_serialPort.open(mode)) {
+    if(((QextSerialPort *)_serialPort)->open(mode)) {
         ((HLed *)_led)->setColor(QColor(Qt::green));
 #ifdef _DEBUG_QSERIALDEVICE_LIB
-        qDebug() << _MODULE_NAME << "open() - " << _serialPort.portName() << " succesfully opened!";
+        qDebug() << _MODULE_NAME << "open() - " << ((QextSerialPort *)_serialPort)->portName() << " succesfully opened!";
 #endif //_DEBUG_QSERIALDEVICE_LIB
         emit portOpened();
         _closeButton->setEnabled(true);
@@ -240,8 +245,8 @@ bool QSerialDevice::open(QIODevice::OpenMode mode) {
         ((QSerialSettingsWidget*)_serialSettingsWidget)->getPortWidget()->setEnabled(false);
     } else {
 #ifdef _DEBUG_QSERIALDEVICE_LIB
-        qWarning() << _MODULE_NAME << "open() - Error opening " << _serialPort.portName();
-        qWarning() << _MODULE_NAME << "open() - Error: " << _serialPort.errorString();
+        qWarning() << _MODULE_NAME << "open() - Error opening " << ((QextSerialPort *)_serialPort)->portName();
+        qWarning() << _MODULE_NAME << "open() - Error: " << ((QextSerialPort *)_serialPort)->errorString();
 #endif //_DEBUG_QSERIALDEVICE_LIB
         ((HLed *)_led)->setColor(QColor(Qt::red));
         return false;
@@ -252,7 +257,7 @@ bool QSerialDevice::open(QIODevice::OpenMode mode) {
 QByteArray QSerialDevice::read() {
     QByteArray res;
     res.clear();
-    if (_serialPort.isOpen()) {
+    if (_serialPort->isOpen()) {
         if(_inBuffer.isEmpty()) {
 #ifdef _DEBUG_QSERIALDEVICE_LIB
             qWarning() << _MODULE_NAME << "read() - no message available in queue!";
@@ -321,43 +326,43 @@ bool QSerialDevice::setSerialParams(QString pName, QString bRate, QString dBits,
 #endif //_DEBUG_QSERIALDEVICE_LIB
         return false;
     }
-    _serialPort.setPortName(pName);
-    _serialPort.setBaudRate((BaudRateType) bRate.toInt());
-    _serialPort.setDataBits((DataBitsType) dBits.toInt());
+    ((QextSerialPort *)_serialPort)->setPortName(pName);
+    ((QextSerialPort *)_serialPort)->setBaudRate((BaudRateType) bRate.toInt());
+    ((QextSerialPort *)_serialPort)->setDataBits((DataBitsType) dBits.toInt());
     QStringList sSettings;
     sSettings << bRate << dBits << par << sBits << fControl;
     ((QSerialSettingsWidget *)_serialSettingsWidget)->setPortName(pName);
     ((QSerialSettingsWidget *)_serialSettingsWidget)->setPortSettings(sSettings);
     if (fControl.toUpper() == "OFF")
-        _serialPort.setFlowControl(FLOW_OFF);
+        ((QextSerialPort *)_serialPort)->setFlowControl(FLOW_OFF);
     else if (fControl.toUpper() == "HW" || fControl.toUpper() == "HARDWARE" )
-        _serialPort.setFlowControl(FLOW_HARDWARE);
+        ((QextSerialPort *)_serialPort)->setFlowControl(FLOW_HARDWARE);
     else
-        _serialPort.setFlowControl(FLOW_XONXOFF);
+        ((QextSerialPort *)_serialPort)->setFlowControl(FLOW_XONXOFF);
 
     if (par.toUpper() == "NONE")
-        _serialPort.setParity(PAR_NONE);
+        ((QextSerialPort *)_serialPort)->setParity(PAR_NONE);
     else if (par.toUpper() == "EVEN")
-        _serialPort.setParity(PAR_NONE);
+        ((QextSerialPort *)_serialPort)->setParity(PAR_NONE);
     else if (par.toUpper() == "ODD")
-        _serialPort.setParity(PAR_ODD);
+        ((QextSerialPort *)_serialPort)->setParity(PAR_ODD);
     else if (par.toUpper() == "SPACE")
-        _serialPort.setParity(PAR_NONE);
+        ((QextSerialPort *)_serialPort)->setParity(PAR_NONE);
 #ifdef Q_OS_WIN
     else if (par.toUpper() == "MARK")
         _serialPort.setParity(PAR_MARK);
 #endif //Q_OS_WIN
 
     if (sBits == "1")
-        _serialPort.setStopBits(STOP_1);
+        ((QextSerialPort *)_serialPort)->setStopBits(STOP_1);
     else if (sBits == "2")
-        _serialPort.setStopBits(STOP_1);
+        ((QextSerialPort *)_serialPort)->setStopBits(STOP_1);
 #ifdef Q_OS_WIN
     else if (sBits == "1.5")
-        _serialPort.setStopBits(STOP_1_5);
+        ((QextSerialPort *)_serialPort)->setStopBits(STOP_1_5);
 #endif //Q_OS_WIN
 
-    _serialPort.setTimeout(1000);
+    ((QextSerialPort *)_serialPort)->setTimeout(1000);
 
     _isPortConfigured = true;
     return true;
@@ -369,15 +374,15 @@ qint64 QSerialDevice::write(QByteArray data) {
             qDebug() << _MODULE_NAME << "write() - Sending:" << data << "(" << data.size() << " Bytes)";
 #endif //_DEBUG_QSERIALDEVICE_LIB
     qint64 res = -1;
-    if (_serialPort.isOpen()) {
-        res = _serialPort.write(data);
+    if (_serialPort->isOpen()) {
+        res = _serialPort->write(data);
         ((HLed *) _led)->blink(res);
         ((HLed *) _led)->setColor(QColor(Qt::green));
         ((HLed *) _led)->turnOn();
         if (res < data.size()) {
 #ifdef _DEBUG_QSERIALDEVICE_LIB
             qWarning() << _MODULE_NAME << "write() - Write Error";
-            qWarning() << _MODULE_NAME << "write() - " << _serialPort.portName() << " returns" << _serialPort.errorString();
+            qWarning() << _MODULE_NAME << "write() - " << ((QextSerialPort *)_serialPort)->portName() << " returns" << ((QextSerialPort *)_serialPort)->errorString();
 #endif //_DEBUG_QSERIALDEVICE_LIB
             ((HLed *)_led)->setColor(QColor(Qt::red));
         }
@@ -390,9 +395,3 @@ qint64 QSerialDevice::write(QByteArray data) {
     }
     return res;
 }
-
-#ifdef _DEBUG_QSERIALDEVICE_LIB
-void QSerialDevice::_DEBUG_printMsg(QByteArray data) {
-    qDebug() << "{DEBUG} - " << _MODULE_NAME << data;
-}
-#endif //_DEBUG_QSERIALDEVICE_LIB
