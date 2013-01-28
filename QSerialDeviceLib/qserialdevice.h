@@ -33,7 +33,7 @@ private slots:
 #endif //__DEBUG_QSERIALDEVICE_LIB
 
 public:
-    QSerialDevice(QObject *parent = 0);
+    QSerialDevice(QString sFileSettingsName = QString(), QObject *parent = 0);
     ~QSerialDevice();
 
     QWidget* getWidget(QWidget *parent);

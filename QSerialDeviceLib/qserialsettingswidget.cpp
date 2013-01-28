@@ -165,6 +165,70 @@ QWidget* QSerialSettingsWidget::getPortWidget() {
     return ui->serialPortCombo;
 }
 
+void QSerialSettingsWidget::setPortName(QString sName) {
+    ui->serialPortCombo->setCurrentIndex(ui->serialPortCombo->findText(sName, Qt::MatchContains|Qt::MatchCaseSensitive));
+}
+
+void QSerialSettingsWidget::setPortSettings(QStringList sSettings) {
+    ui->baudrateCombo->setCurrentIndex(ui->baudrateCombo->findText(sSettings.at(0)));
+    ui->databitsCombo->setCurrentIndex(ui->databitsCombo->findText(sSettings.at(1)));
+    ui->parityCombo->setCurrentIndex(ui->parityCombo->findText(sSettings.at(2)));
+    ui->stopbitsCombo->setCurrentIndex(ui->stopbitsCombo->findText(sSettings.at(3)));
+    ui->flowcontrolCombo->setCurrentIndex(ui->flowcontrolCombo->findText(sSettings.at(4)));
+}
+
+QStringList QSerialSettingsWidget::settings2QStringList(PortSettings pSettings) {
+    QStringList res;
+    res << QString("%1").arg((quint32) pSettings.BaudRate);
+    res << QString("%1").arg((quint8) pSettings.DataBits);
+    switch (pSettings.Parity) {
+    case PAR_NONE:
+        res << QString("NONE");
+        break;
+    case PAR_ODD:
+        res << QString("ODD");
+        break;
+    case PAR_EVEN:
+        res << QString("EVEN");
+        break;
+#ifdef Q_OS_WIN
+    case PAR_MARK:
+        res << QString("MARK");
+        break;
+#endif // Q_OS_WIN
+    case PAR_SPACE:
+        res << QString("SPACE");
+        break;
+    }
+    switch (pSettings.StopBits) {
+    case STOP_1:
+        res << QString("1");
+        break;
+#ifdef Q_OS_WIN
+    case STOP_1_5:
+        res << QString("1.5");
+        break;
+#endif
+    case STOP_2:
+        res << QString("2");
+        break;
+    }
+    switch (pSettings.FlowControl) {
+    case FLOW_OFF:
+        res << QString("OFF");
+        break;
+    case FLOW_HARDWARE:
+        res << QString("HW");
+        break;
+    case FLOW_XONXOFF:
+        res << QString("XON/XOFF");
+        break;
+    }
+
+    res << QString("%1").arg(pSettings.FlowControl);
+    return res;
+}
+
 void QSerialSettingsWidget::updateDevicesList() {
 #ifdef _DEBUG_QSERIALDEVICE_WIDGET
     if (!_isFirstTime)
@@ -184,3 +248,4 @@ void QSerialSettingsWidget::updateDevicesList() {
 #endif //_DEBUG_QSERIALDEVICE_WIDGET
     ui->serialPortCombo->addItems(sPorts);
 }
+

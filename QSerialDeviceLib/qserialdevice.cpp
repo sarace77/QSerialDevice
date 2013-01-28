@@ -10,17 +10,102 @@
 #define _MODULE_NAME "[QSERIALDEVICE] - "
 #endif //_DEBUG_QSERIALDEVICE_LIB
 
+#ifdef Q_OS_WIN
+#define _QSERIALDEVICE_CONFIG_DIR "Settings"
+#define _QSERIALDEVICE_CONFIG_FILE "settings.ini"
+#else
+#define _QSERIALDEVICE_CONFIG_DIR ".qserialdevice"
+#define _QSERIALDEVICE_CONFIG_FILE "config.xml"
+#include <QXmlStreamReader>
+#include <QXmlStreamWriter>
+#endif //Q_OS_WIN
+
+#include <QDir>
+#include <QFile>
 #include <QTime>
 
 #define _MAX_BUFF_SIZE 255
 #define _READ_TIMEOUT 500
 
-QSerialDevice::QSerialDevice(QObject *parent) : QObject(parent) {
+QStringList xmlLoad(QFile *iFile) {
+    QStringList res;
+    QXmlStreamReader xmlReader(iFile);
+    while(!xmlReader.atEnd()) {
+        xmlReader.readNext();
+        if (xmlReader.attributes().hasAttribute("name"))
+            res << QString(xmlReader.attributes().value("name").toAscii());
+        if (xmlReader.name() == "BaudRate")
+            res << xmlReader.readElementText();
+        if (xmlReader.name() == "DataBits")
+            res << xmlReader.readElementText();
+        if (xmlReader.name() == "Parity")
+            res << xmlReader.readElementText();
+        if (xmlReader.name() == "StopBits")
+            res << xmlReader.readElementText();
+        if (xmlReader.name() == "FlowControl")
+            res << xmlReader.readElementText();
+    }
+#ifdef _DEBUG_QSERIALDEVICE_LIB
+    if(xmlReader.hasError())
+        qWarning() << "[XML_LOAD] - error: " << xmlReader.errorString();
+    else
+        qDebug() << "[XML_LOAD] - Read Configuration: " << res;
+#endif //_DEBUG_QSERIALDEVICE_LIB
+    return res;
+}
+
+
+void xmlSave(QFile *oFile, QString sPortName, QStringList sSettings) {
+    QXmlStreamWriter xmlWriter(oFile);
+    xmlWriter.setAutoFormatting(true);
+    xmlWriter.writeStartDocument();
+    xmlWriter.writeStartElement("QSerialDevice");
+    xmlWriter.writeStartElement("Port");
+    xmlWriter.writeAttribute("name", sPortName);
+    xmlWriter.writeTextElement("BaudRate", sSettings.at(0));
+    xmlWriter.writeTextElement("DataBits", sSettings.at(1));
+    xmlWriter.writeTextElement("Parity", sSettings.at(2));
+    xmlWriter.writeTextElement("StopBits", sSettings.at(3));
+    xmlWriter.writeTextElement("FlowControl", sSettings.at(4));
+    xmlWriter.writeEndElement();
+    xmlWriter.writeEndElement();
+    xmlWriter.writeEndDocument();
+}
+
+QSerialDevice::QSerialDevice(QString sFileSettingsName, QObject *parent) : QObject(parent) {
     _closeButton = new QPushButton("Close");
     _led = new HLed();
     _mainToolBar = new QToolBar();
     _openButton = new QPushButton("Open");
     _serialSettingsWidget = new QSerialSettingsWidget();
+
+    if (sFileSettingsName.isEmpty())
+        sFileSettingsName = QString(_QSERIALDEVICE_CONFIG_FILE);
+
+    QDir _configDir;
+    if (!_configDir.exists(_QSERIALDEVICE_CONFIG_DIR)) {
+#ifdef _DEBUG_QSERIALDEVICE_LIB
+        qDebug() << _MODULE_NAME << "QSerialDevice() - Creating " << _configDir.absolutePath() + "/" + _QSERIALDEVICE_CONFIG_DIR;
+        _configDir.mkdir(_QSERIALDEVICE_CONFIG_DIR);
+#endif //_DEBUG_QSERIALDEVICE_LIB
+    } else {
+        _configDir.cd(_QSERIALDEVICE_CONFIG_DIR);
+        QFile _configFile(_configDir.absolutePath()+ QString("/") + sFileSettingsName);
+        if (_configFile.exists()) {
+#ifdef _DEBUG_QSERIALDEVICE_LIB
+        qDebug() << _MODULE_NAME << "QSerialDevice() - Loading Settings from: " << sFileSettingsName;
+#endif //_DEBUG_QSERIALDEVICE_LIB
+            if(_configFile.open(QIODevice::ReadOnly)) {
+                QStringList sP = xmlLoad(&_configFile);
+                _configFile.close();
+                setSerialParams(sP.at(0), sP.at(1), sP.at(2), sP.at(3), sP.at(4), sP.at(5));
+#ifdef _DEBUG_QSERIALDEVICE_LIB
+            } else {
+                qWarning() << _MODULE_NAME << "QSerialDevice() - Unable to open " << _QSERIALDEVICE_CONFIG_FILE;
+#endif //_DEBUG_QSERIALDEVICE_LIB
+            }
+        }
+    }
 
     _mainToolBar->addWidget(((QSerialSettingsWidget*)_serialSettingsWidget)->getPortWidget());
     _mainToolBar->addWidget(_openButton);
@@ -46,9 +131,23 @@ QSerialDevice::QSerialDevice(QObject *parent) : QObject(parent) {
 }
 
 QSerialDevice::~QSerialDevice() {
+    QString sPortName = ((QSerialSettingsWidget*)_serialSettingsWidget)->getPortName();
+    QStringList sSettings = QSerialSettingsWidget::settings2QStringList(((QSerialSettingsWidget*)_serialSettingsWidget)->getPortSettings());
+    close();
+    QDir _configDir;
+    _configDir.cd(_QSERIALDEVICE_CONFIG_DIR);
+    QFile _configFile(_configDir.absolutePath()+QString("/") + QString(+_QSERIALDEVICE_CONFIG_FILE));
+    if(_configFile.open(QIODevice::WriteOnly)) {
+        xmlSave(&_configFile, sPortName, sSettings);
+#ifdef _DEBUG_QSERIALDEVICE_LIB
+    } else {
+        qWarning() << _MODULE_NAME << "~QSerialDevice() - Unable to open " << _QSERIALDEVICE_CONFIG_FILE;
+#endif //_DEBUG_QSERIALDEVICE_LIB
+    }
+    _configFile.close();
     delete _closeButton;
-    delete _mainToolBar;
     delete _openButton;
+    delete _mainToolBar;
     delete _serialSettingsWidget;
 }
 
@@ -225,7 +324,10 @@ bool QSerialDevice::setSerialParams(QString pName, QString bRate, QString dBits,
     _serialPort.setPortName(pName);
     _serialPort.setBaudRate((BaudRateType) bRate.toInt());
     _serialPort.setDataBits((DataBitsType) dBits.toInt());
-
+    QStringList sSettings;
+    sSettings << bRate << dBits << par << sBits << fControl;
+    ((QSerialSettingsWidget *)_serialSettingsWidget)->setPortName(pName);
+    ((QSerialSettingsWidget *)_serialSettingsWidget)->setPortSettings(sSettings);
     if (fControl.toUpper() == "OFF")
         _serialPort.setFlowControl(FLOW_OFF);
     else if (fControl.toUpper() == "HW" || fControl.toUpper() == "HARDWARE" )

@@ -33,6 +33,7 @@ QSerialConsoleWindow::~QSerialConsoleWindow()
     if (_protocol)
         delete _protocol;
     delete _consoleWidget;
+    delete _serialPort;
     delete ui;
 }
 

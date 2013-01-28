@@ -32,6 +32,11 @@ public:
 
     QWidget *getPortWidget();
 
+    void setPortName(QString sName);
+    void setPortSettings(QStringList sSettings);
+
+    static QStringList settings2QStringList(PortSettings pSettings);
+
 private:
     Ui::QSerialSettingsWidget *ui;
 };
