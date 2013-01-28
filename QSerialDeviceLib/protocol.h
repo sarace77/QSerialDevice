@@ -1,19 +1,30 @@
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
-#include <QtCore>
+#include <QByteArray>
+#include <QObject>
+#include <QStringList>
 
-class Protocol
+class Protocol : public QObject
 {
+    Q_OBJECT
+
 protected:
-    QStringList _tagList;
+    QStringList _tagsList;
+
 public:
-    Protocol();
+    explicit Protocol(QObject *parent = 0);
     virtual ~Protocol();
 
+    QStringList tagsList();
+
+public slots:
     virtual QByteArray decode(QByteArray data);
     virtual QByteArray encode(QByteArray data);
-    virtual QStringList getTagList();
+
+signals:
+    void dataDecoded(QByteArray data);
+    void dataEncoded(QByteArray data);
 };
 
 #endif // PROTOCOL_H

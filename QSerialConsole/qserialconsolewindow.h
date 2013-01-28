@@ -25,7 +25,6 @@ private:
     Protocol *_protocol;
 
 private slots:
-    void incomingMessage(QByteArray msg);
     void on_actionASCII_triggered();
     void on_actionNone_triggered();
     void on_actionPortSettings_triggered();

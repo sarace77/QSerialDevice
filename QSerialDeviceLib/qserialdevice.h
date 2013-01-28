@@ -15,17 +15,15 @@ class QSerialDevice : public QObject
     Q_OBJECT
 
 private:
-    QWidget *_led, *_serialSettingsWidget;
     QextSerialPort _serialPort;
 
+    QWidget *_led, *_serialSettingsWidget;
     QPushButton *_closeButton, *_openButton;
     QToolBar *_mainToolBar;
 
     bool _isPortConfigured;
 
     QQueue<QByteArray > _inBuffer;
-
-    Protocol *_prt;
 
 private slots:
     void onDataAvailable();
@@ -41,12 +39,7 @@ public:
     QWidget* getWidget(QWidget *parent);
     QToolBar* getToolBar();
     bool isOpen();
-
     QByteArray read();
-
-    void setProtocol(Protocol *proto);
-
-    static QByteArray decodeData(Protocol *proto, QByteArray data);
 
 public slots:
     void close();

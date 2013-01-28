@@ -14,7 +14,7 @@ QSerialConsoleWindow::QSerialConsoleWindow(QWidget *parent) :
     _portSettingsDialog->setWindowTitle("Port Settings");
     _serialPort->getWidget(_portSettingsDialog);
 
-    _protocol = NULL;
+    _protocol = new Protocol();
 
     _consoleWidget = new QConsoleWidget(ui->consoleFrame);
     _consoleWidget->showBanner("Welcome to QSerialConsole v 1.0\n");
@@ -22,9 +22,10 @@ QSerialConsoleWindow::QSerialConsoleWindow(QWidget *parent) :
 
     connect(_serialPort, SIGNAL(portOpened()), this, SLOT(portOpened()));
     connect(_serialPort, SIGNAL(portClosed()), this, SLOT(portClosed()));
-    connect(_serialPort, SIGNAL(msgAvailable(QByteArray)), this, SLOT(incomingMessage(QByteArray)));
-    connect(_consoleWidget, SIGNAL(newOutgoingMessage(QByteArray)), _serialPort, SLOT(write(QByteArray)));
-    //connect(this, SIGNAL(protocolChanged(Protocol*)), _consoleWidget, SLOT(protocolChanged(Protocol*)));
+    connect(_serialPort, SIGNAL(msgAvailable(QByteArray)), _protocol, SLOT(decode(QByteArray)));
+    connect(_protocol, SIGNAL(dataDecoded(QByteArray)), _consoleWidget, SLOT(showIncomingMessage(QByteArray)));
+    connect(_consoleWidget, SIGNAL(newOutgoingMessage(QByteArray)), _protocol, SLOT(encode(QByteArray)));
+    connect(_protocol, SIGNAL(dataEncoded(QByteArray)), _serialPort, SLOT(write(QByteArray)));
 }
 
 QSerialConsoleWindow::~QSerialConsoleWindow()
@@ -35,28 +36,36 @@ QSerialConsoleWindow::~QSerialConsoleWindow()
     delete ui;
 }
 
-void QSerialConsoleWindow::incomingMessage(QByteArray msg) {
-    if (_protocol)
-        msg = _protocol->decode(msg);
-    _consoleWidget->showIncomingMessage(msg);
-}
-
 void QSerialConsoleWindow::on_actionASCII_triggered() {
+    disconnect(_serialPort, SIGNAL(msgAvailable(QByteArray)), _protocol, SLOT(decode(QByteArray)));
+    disconnect(_protocol, SIGNAL(dataDecoded(QByteArray)), _consoleWidget, SLOT(showIncomingMessage(QByteArray)));
+    disconnect(_consoleWidget, SIGNAL(newOutgoingMessage(QByteArray)), _protocol, SLOT(encode(QByteArray)));
+    disconnect(_protocol, SIGNAL(dataEncoded(QByteArray)), _serialPort, SLOT(write(QByteArray)));
     if (_protocol)
         delete _protocol;
     _protocol = new Protocol_ASCII();
-    _serialPort->setProtocol(_protocol);
-    _consoleWidget->refreshProtocolTags(_protocol->getTagList());
+    connect(_serialPort, SIGNAL(msgAvailable(QByteArray)), _protocol, SLOT(decode(QByteArray)));
+    connect(_protocol, SIGNAL(dataDecoded(QByteArray)), _consoleWidget, SLOT(showIncomingMessage(QByteArray)));
+    connect(_consoleWidget, SIGNAL(newOutgoingMessage(QByteArray)), _protocol, SLOT(encode(QByteArray)));
+    connect(_protocol, SIGNAL(dataEncoded(QByteArray)), _serialPort, SLOT(write(QByteArray)));
+    _consoleWidget->refreshProtocolTags(_protocol->tagsList());
     ui->actionNone->setChecked(false);
     _consoleWidget->setFocus();
 }
 
 void QSerialConsoleWindow::on_actionNone_triggered() {
+    disconnect(_serialPort, SIGNAL(msgAvailable(QByteArray)), _protocol, SLOT(decode(QByteArray)));
+    disconnect(_protocol, SIGNAL(dataDecoded(QByteArray)), _consoleWidget, SLOT(showIncomingMessage(QByteArray)));
+    disconnect(_consoleWidget, SIGNAL(newOutgoingMessage(QByteArray)), _protocol, SLOT(encode(QByteArray)));
+    disconnect(_protocol, SIGNAL(dataEncoded(QByteArray)), _serialPort, SLOT(write(QByteArray)));
     if (_protocol)
         delete _protocol;
-    _protocol = NULL;
-    _serialPort->setProtocol(_protocol);
-    _consoleWidget->refreshProtocolTags(_protocol->getTagList());
+    _protocol = new Protocol();
+    connect(_serialPort, SIGNAL(msgAvailable(QByteArray)), _protocol, SLOT(decode(QByteArray)));
+    connect(_protocol, SIGNAL(dataDecoded(QByteArray)), _consoleWidget, SLOT(showIncomingMessage(QByteArray)));
+    connect(_consoleWidget, SIGNAL(newOutgoingMessage(QByteArray)), _protocol, SLOT(encode(QByteArray)));
+    connect(_protocol, SIGNAL(dataEncoded(QByteArray)), _serialPort, SLOT(write(QByteArray)));
+    _consoleWidget->refreshProtocolTags(_protocol->tagsList());
     ui->actionASCII->setChecked(false);
     _consoleWidget->setFocus();
 }

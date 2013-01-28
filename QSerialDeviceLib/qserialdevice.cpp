@@ -20,7 +20,6 @@ QSerialDevice::QSerialDevice(QObject *parent) : QObject(parent) {
     _led = new HLed();
     _mainToolBar = new QToolBar();
     _openButton = new QPushButton("Open");
-    _prt = NULL;
     _serialSettingsWidget = new QSerialSettingsWidget();
 
     _mainToolBar->addWidget(((QSerialSettingsWidget*)_serialSettingsWidget)->getPortWidget());
@@ -69,20 +68,6 @@ void QSerialDevice::close() {
     _serialSettingsWidget->setEnabled(true);
     ((QSerialSettingsWidget*)_serialSettingsWidget)->getPortWidget()->setEnabled(true);
     emit portClosed();
-}
-
-QByteArray QSerialDevice::decodeData(Protocol *proto, QByteArray data) {
-#ifdef _DEBUG_QSERIALDEVICE_LIB
-    qDebug() << _MODULE_NAME << "decodeData() - trying to decoding: " << data.size() << "bytes";
-#endif //_DEBUG_QSERIALDEVICE_LIB
-    if (proto) {
-        QByteArray dataDecoded = proto->decode(data);
-#ifdef _DEBUG_QSERIALDEVICE_LIB
-        qDebug() << _MODULE_NAME << "decodeData() - Decoded Data:" << dataDecoded;
-#endif //_DEBUG_QSERIALDEVICE_LIB
-        return dataDecoded;
-    }
-    return data;
 }
 
 QToolBar* QSerialDevice::getToolBar() {
@@ -276,9 +261,6 @@ bool QSerialDevice::setSerialParams(QString pName, QString bRate, QString dBits,
     return true;
 }
 
-void QSerialDevice::setProtocol(Protocol *proto) {
-    _prt = proto;
-}
 
 qint64 QSerialDevice::write(QByteArray data) {
 #ifdef _DEBUG_QSERIALDEVICE_LIB
@@ -286,12 +268,6 @@ qint64 QSerialDevice::write(QByteArray data) {
 #endif //_DEBUG_QSERIALDEVICE_LIB
     qint64 res = -1;
     if (_serialPort.isOpen()) {
-        if (_prt) {
-            data = _prt->encode(data);
-#ifdef _DEBUG_QSERIALDEVICE_LIB
-            qDebug() << _MODULE_NAME << "write() - Encoded Data:" << data << "(" << data.size() << " Bytes)";
-#endif //_DEBUG_QSERIALDEVICE_LIB
-        }
         res = _serialPort.write(data);
         ((HLed *) _led)->blink(res);
         ((HLed *) _led)->setColor(QColor(Qt::green));
