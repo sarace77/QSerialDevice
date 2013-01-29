@@ -174,14 +174,6 @@ void QSerialDevice::close() {
     emit portClosed();
 }
 
-QToolBar* QSerialDevice::getToolBar() {
-    return _mainToolBar;
-}
-
-QWidget* QSerialDevice::getWidget(QWidget *parent) {
-    _serialSettingsWidget->setParent(parent);
-    return _serialSettingsWidget;
-}
 
 bool QSerialDevice::isOpen() {
     return _serialPort->isOpen();
@@ -368,6 +360,13 @@ bool QSerialDevice::setSerialParams(QString pName, QString bRate, QString dBits,
     return true;
 }
 
+QToolBar* QSerialDevice::toolbar() {
+    return _mainToolBar;
+}
+
+QWidget* QSerialDevice::widget() {
+    return _serialSettingsWidget;
+}
 
 qint64 QSerialDevice::write(QByteArray data) {
 #ifdef _DEBUG_QSERIALDEVICE_LIB

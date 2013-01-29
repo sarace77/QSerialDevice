@@ -2,8 +2,11 @@
 #define QSERIALDEVICEDEMO_H
 
 #include <QDialog>
+#include <QDialogButtonBox>
 #include <QErrorMessage>
 #include <QMainWindow>
+#include <QVBoxLayout>
+
 
 #include "qserialdevice.h"
 
@@ -20,6 +23,9 @@ private:
     QErrorMessage *_errorDialog;
     QDialog *_portSettingsDialog;
     QSerialDevice *_serialDevice;
+
+    QDialogButtonBox *_dialogButtonBox;
+    QVBoxLayout *_mainLayout;
 
 private slots:
     void on_actionPortSettings_triggered();

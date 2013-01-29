@@ -2,7 +2,9 @@
 #define QSERIALCONSOLEWINDOW_H
 
 #include <QDialog>
+#include <QDialogButtonBox>
 #include <QMainWindow>
+#include <QVBoxLayout>
 
 #include "qconsolewidget.h"
 #include "protocol.h"
@@ -23,6 +25,9 @@ private:
     QDialog *_portSettingsDialog;
 
     Protocol *_protocol;
+
+    QDialogButtonBox *_dialogButtonBox;
+    QVBoxLayout *_mainLayout;
 
 private slots:
     void on_actionASCII_triggered();

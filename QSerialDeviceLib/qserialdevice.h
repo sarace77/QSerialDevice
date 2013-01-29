@@ -31,10 +31,10 @@ public:
      */
     ~QSerialDevice();
 
-    QWidget* getWidget(QWidget *parent);
-    QToolBar* getToolBar();
     bool isOpen();
     QByteArray read();
+    QToolBar* toolbar();
+    QWidget* widget();
 
 public slots:
     void close();
@@ -48,8 +48,6 @@ signals:
     void msgAvailable(QByteArray msg);
     void portOpened();
     void portClosed();
-
-
 
 /* Private Members internal use only */
 private:

@@ -9,7 +9,9 @@
 
 QSerialSettingsWidget::QSerialSettingsWidget(QWidget *parent) : QWidget(parent), ui(new Ui::QSerialSettingsWidget) {
     ui->setupUi(this);
+    setMinimumSize(400,200);
     _serialEnumerator = new QextSerialEnumerator(this);
+    _toolBarSerialPortCombo = new QComboBox(this);
 
 #ifdef _DEBUG_QSERIALDEVICE_WIDGET
     _isFirstTime = true;
@@ -137,6 +139,8 @@ QSerialSettingsWidget::QSerialSettingsWidget(QWidget *parent) : QWidget(parent),
 
     connect(_serialEnumerator, SIGNAL(deviceDiscovered(QextPortInfo)), this, SLOT(updateDevicesList()));
     connect(_serialEnumerator, SIGNAL(deviceRemoved(QextPortInfo)), this, SLOT(updateDevicesList()));
+    connect(_toolBarSerialPortCombo, SIGNAL(currentIndexChanged(int)), ui->serialPortCombo, SLOT(setCurrentIndex(int)));
+    connect(ui->serialPortCombo, SIGNAL(currentIndexChanged(int)), _toolBarSerialPortCombo, SLOT(setCurrentIndex(int)));
 }
 
 QSerialSettingsWidget::~QSerialSettingsWidget()
@@ -162,7 +166,7 @@ PortSettings QSerialSettingsWidget::getPortSettings() {
 }
 
 QWidget* QSerialSettingsWidget::getPortWidget() {
-    return ui->serialPortCombo;
+    return _toolBarSerialPortCombo;
 }
 
 void QSerialSettingsWidget::setPortName(QString sName) {
@@ -237,6 +241,7 @@ void QSerialSettingsWidget::updateDevicesList() {
         _isFirstTime = false;
 #endif //_DEBUG_QSERIALDEVICE_WIDGET
     ui->serialPortCombo->clear();
+    _toolBarSerialPortCombo->clear();
     QStringList sPorts;
     QList<QextPortInfo> ports = QextSerialEnumerator::getPorts();
     foreach (QextPortInfo port, ports) {
@@ -247,5 +252,6 @@ void QSerialSettingsWidget::updateDevicesList() {
     qDebug() << _MODULE_NAME << "updateDevicesList() - " << sPorts.count() << " ports found:" << sPorts;
 #endif //_DEBUG_QSERIALDEVICE_WIDGET
     ui->serialPortCombo->addItems(sPorts);
+    _toolBarSerialPortCombo->addItems(sPorts);
 }
 

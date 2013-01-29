@@ -9,25 +9,26 @@ QSerialDeviceDemo::QSerialDeviceDemo(QWidget *parent) : QMainWindow(parent), ui(
     _errorDialog = new QErrorMessage(this);
     _portSettingsDialog = new QDialog(this);
     _serialDevice = new QSerialDevice();
+    _dialogButtonBox = new QDialogButtonBox(_portSettingsDialog);
+    _mainLayout = new QVBoxLayout(_portSettingsDialog);
 
+    _mainLayout->addWidget(_serialDevice->widget());
+    _mainLayout->addWidget(_dialogButtonBox);
     _errorDialog->setWindowTitle("Error");
     _portSettingsDialog->setWindowTitle("Port Settings");
-    _serialDevice->getWidget(_portSettingsDialog);
 
     ui->centralWidget->setEnabled(false);
 
-    addToolBar(_serialDevice->getToolBar());
+    addToolBar(_serialDevice->toolbar());
     connect(_serialDevice, SIGNAL(msgAvailable(QByteArray)), this, SLOT(read(QByteArray)));
     connect(_serialDevice, SIGNAL(portClosed()), this, SLOT(onPortClosed()));
     connect(_serialDevice, SIGNAL(portOpened()), this, SLOT(onPortOpened()));
+    connect(_dialogButtonBox, SIGNAL(accepted()), _portSettingsDialog, SLOT(close()));
 }
 
+
 QSerialDeviceDemo::~QSerialDeviceDemo() {
-    delete _errorDialog;
-    if(_serialDevice->isOpen())
-            _serialDevice->close();
-    //delete _serialDevice;
-    delete _portSettingsDialog;
+    delete _serialDevice;
     delete ui;
 }
 

@@ -9,11 +9,14 @@ QSerialConsoleWindow::QSerialConsoleWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     _portSettingsDialog = new QDialog(this);
+    _dialogButtonBox = new QDialogButtonBox(_portSettingsDialog);
+    _mainLayout = new QVBoxLayout(_portSettingsDialog);
     _serialPort = new QSerialDevice();
-    addToolBar(_serialPort->getToolBar());
+    addToolBar(_serialPort->toolbar());
+    _dialogButtonBox->addButton(QDialogButtonBox::Ok);
     _portSettingsDialog->setWindowTitle("Port Settings");
-    _serialPort->getWidget(_portSettingsDialog);
-
+    _mainLayout->addWidget(_serialPort->widget());
+    _mainLayout->addWidget(_dialogButtonBox);
     _protocol = new Protocol();
 
     _consoleWidget = new QConsoleWidget(ui->consoleFrame);
@@ -26,13 +29,13 @@ QSerialConsoleWindow::QSerialConsoleWindow(QWidget *parent) :
     connect(_protocol, SIGNAL(dataDecoded(QByteArray)), _consoleWidget, SLOT(showIncomingMessage(QByteArray)));
     connect(_consoleWidget, SIGNAL(newOutgoingMessage(QByteArray)), _protocol, SLOT(encode(QByteArray)));
     connect(_protocol, SIGNAL(dataEncoded(QByteArray)), _serialPort, SLOT(write(QByteArray)));
+    connect(_dialogButtonBox, SIGNAL(accepted()), _portSettingsDialog, SLOT(close()));
 }
 
 QSerialConsoleWindow::~QSerialConsoleWindow()
 {
     if (_protocol)
         delete _protocol;
-    delete _consoleWidget;
     delete _serialPort;
     delete ui;
 }
